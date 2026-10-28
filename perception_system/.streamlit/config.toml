@@ -1,0 +1,15 @@
+# Mission-control theme: amber / green / red / white accents only (no blue).
+[theme]
+base = "dark"
+primaryColor = "#FFB000"
+backgroundColor = "#0A0B0A"
+secondaryBackgroundColor = "#141512"
+textColor = "#F2F2F2"
+font = "monospace"
+
+[server]
+headless = true
+runOnSave = false
+
+[browser]
+gatherUsageStats = false

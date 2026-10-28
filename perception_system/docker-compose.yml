@@ -1,0 +1,27 @@
+# Headless engine (default) or Streamlit dashboard (profile "dashboard").
+# Run ONE of them per camera - both open the video source.
+#   docker compose up engine
+#   docker compose --profile dashboard up dashboard
+services:
+  engine:
+    build: .
+    command: ["python", "main.py", "run", "--headless"]
+    ports: ["8765:8765"]
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+      - ./zones.yaml:/app/zones.yaml
+    environment: [TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SMTP_HOST, SMTP_USER, SMTP_PASSWORD, INGEST_TOKEN]
+    # devices: ["/dev/video0:/dev/video0"]      # USB camera passthrough
+    # deploy: {resources: {reservations: {devices: [{capabilities: [gpu]}]}}}
+    restart: unless-stopped
+  dashboard:
+    profiles: ["dashboard"]
+    build: .
+    command: ["python", "-m", "streamlit", "run", "ui/dashboard.py", "--server.address=0.0.0.0", "--", "--config", "config.yaml"]
+    ports: ["8501:8501", "8765:8765"]
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+      - ./zones.yaml:/app/zones.yaml
+    restart: unless-stopped

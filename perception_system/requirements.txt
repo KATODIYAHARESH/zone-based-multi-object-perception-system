@@ -1,0 +1,18 @@
+# ---- core runtime ------------------------------------------------------------
+ultralytics>=8.4.0            # YOLO26 / YOLO11 / YOLO-World / YOLOE (pulls torch)
+opencv-python>=4.9.0          # servers/containers: opencv-python-headless
+numpy>=1.24,<3
+scipy>=1.11                   # Hungarian assignment (greedy fallback if absent)
+pydantic>=2.6
+PyYAML>=6.0
+requests>=2.31
+pandas>=2.1
+# ---- face pipeline -----------------------------------------------------------
+insightface>=0.7.3            # RetinaFace/SCRFD detector + ArcFace embeddings + age
+onnxruntime>=1.17             # use onnxruntime-gpu on CUDA hosts
+hsemotion-onnx>=0.3.1         # EfficientNet facial-expression recognition
+# ---- dashboard ---------------------------------------------------------------
+streamlit>=1.50
+streamlit-image-coordinates>=0.1.9
+# ---- tests -------------------------------------------------------------------
+pytest>=8.0

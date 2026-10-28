@@ -1,0 +1,7 @@
+# Optional back-ends - install only what you enable in config.yaml
+mediapipe>=0.10.14            # face.detector: mediapipe
+deepface>=0.0.93              # face.emotion.backend: deepface (pulls TensorFlow)
+transformers>=4.44            # detection.open_vocab.backend: grounding_dino
+Pillow>=10.0
+motmetrics>=1.4               # tools/evaluate.py tracking metrics (MOTA / IDF1)
+onnxruntime-gpu>=1.17         # CUDA execution provider for insightface / hsemotion

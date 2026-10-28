@@ -1,0 +1,6 @@
+data/
+**/__pycache__/
+*.pt
+*.engine
+.pytest_cache/
+.venv/

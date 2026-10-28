@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* Mission-control palette: amber / green / red / white accents only - NO blue anywhere. */
+@theme {
+  --color-hud-bg: #0a0b0a;
+  --color-hud-panel: #121411;
+  --color-hud-panel2: #181a16;
+  --color-hud-border: #2a2922;
+  --color-hud-amber: #ffb000;
+  --color-hud-amberdim: #8a5e00;
+  --color-hud-green: #3ddc5f;
+  --color-hud-red: #ff3b30;
+  --color-hud-white: #f2f2f2;
+  --color-hud-grey: #9a968a;
+  --color-hud-muted: #6b675d;
+  --font-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* Neutralise every browser default that would introduce blue. */
+:root {
+  color-scheme: dark;
+  accent-color: #ffb000;
+}
+html,
+body {
+  background: #0a0b0a;
+  color: #f2f2f2;
+}
+body {
+  font-family: var(--font-mono);
+  -webkit-tap-highlight-color: transparent;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+::selection {
+  background: #ffb000;
+  color: #0a0b0a;
+}
+:focus-visible {
+  outline: 2px solid #ffb000;
+  outline-offset: 2px;
+}
+input,
+textarea {
+  caret-color: #ffb000;
+}
+* {
+  scrollbar-color: #5a4300 #0f100e;
+  scrollbar-width: thin;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #5a4300;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: #0f100e;
+}
+
+.hud-input {
+  width: 100%;
+  background: #0f100e;
+  border: 1px solid #2a2922;
+  color: #f2f2f2;
+  padding: 0.4rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+.hud-input:focus {
+  border-color: #ffb000;
+  outline: none;
+}
+.hud-input::placeholder {
+  color: #6b675d;
+}
+
+.hud-grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 176, 0, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 176, 0, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.blink {
+  animation: hud-blink 1s steps(2, start) infinite;
+}
+@keyframes hud-blink {
+  to {
+    visibility: hidden;
+  }
+}
+.scanlines {
+  position: relative;
+}
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0, transparent 2px, rgba(0, 0, 0, 0.14) 3px);
+}
+.code-view {
+  tab-size: 4;
+}

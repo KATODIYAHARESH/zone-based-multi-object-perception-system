@@ -1,0 +1,168 @@
+# =============================================================================
+#  ZBMOPS - Zone-Based Multi-Object Perception System - master configuration
+#  Every tunable lives here; nothing is hard-coded in the source.
+#  Secrets are NEVER stored here: only the *names* of environment variables.
+#  Relative paths resolve against the directory containing this file.
+#  Unknown keys are rejected at start-up (typo protection).
+# =============================================================================
+
+system:
+  name: "ZBMOPS-01"
+  site: "default-site"
+  log_level: INFO              # DEBUG | INFO | WARNING | ERROR
+  log_dir: data/logs
+  data_dir: data
+
+source:
+  uri: "0"                     # webcam index, video file path, or rtsp:// / http:// URL
+  width: 1280                  # processing resolution (frames are resized to this)
+  height: 720
+  resize: true
+  fps_hint: 30
+  loop_video: true             # loop video files (demos / soak tests)
+  realtime_playback: true      # pace video files at native FPS
+  read_timeout_s: 5.0          # live source considered stalled after this
+  reconnect:
+    enabled: true
+    initial_delay_s: 0.5
+    max_delay_s: 10.0
+    max_attempts: 0            # 0 = retry forever
+
+performance:
+  device: auto                 # auto | cuda:0 | cpu | mps
+  half_precision: true         # FP16 inference on CUDA
+  imgsz: 640
+  detect_every_n_frames: 1     # base frame skip (1 = detect every frame)
+  adaptive_skip: true          # raise skip automatically when over latency budget
+  target_fps: 25
+  max_skip: 4
+  warmup: true
+
+detection:
+  model: yolo26s.pt            # latest Ultralytics weights (Jan 2026). CPU-only: yolo26n.pt
+  confidence: 0.35             # min score for a *labelled* object
+  iou: 0.5                     # NMS IoU (NMS-based weights e.g. yolo11m.pt; YOLO26 is NMS-free end-to-end)
+  category_nms_iou: 0.7        # suppress car+truck duplicates on one object
+  unclassified_floor: 0.15     # scores in [floor, confidence) only continue existing tracks
+  max_det: 300
+  agnostic_nms: false
+  classes: null                # restrict to COCO class ids; null = all 80
+  open_vocab:
+    enabled: true
+    backend: yolo_world        # yolo_world | yoloe | grounding_dino
+    model: yolov8s-worldv2.pt
+    confidence: 0.25
+    interval_frames: 15        # must stay below tracking.track_buffer
+    merge_iou: 0.5
+    prompts:                   # rare / regional classes absent from COCO-80
+      vehicle: ["auto rickshaw", "tuk tuk", "e-rickshaw", "tractor", "van", "ambulance", "scooter", "cart"]
+      animal: ["goat", "buffalo", "camel", "monkey", "pig", "donkey", "deer", "chicken", "duck", "rabbit"]
+      food: ["mango", "watermelon", "grapes", "pineapple", "tomato", "lemon", "papaya", "coconut", "bread", "egg"]
+      object: ["helmet", "gas cylinder", "drone", "traffic cone", "cardboard box"]
+  motion:                      # unexplained foreground blobs -> "unclassified" (never guessed)
+    enabled: true
+    only_in_zones: true
+    min_area_frac: 0.002
+    max_area_frac: 0.25
+    history: 300
+    var_threshold: 32
+    covered_frac: 0.4
+    confidence: 0.65
+    downscale: 0.5
+    persist_frames: 5
+  plates:
+    enabled: true
+    model: null                # optional licence-plate YOLO weights; null -> classical CV heuristic
+    confidence: 0.3
+    min_vehicle_height_px: 80
+
+tracking:
+  high_thresh: null            # null -> detection.confidence
+  low_thresh: null             # null -> detection.unclassified_floor
+  new_track_thresh: 0.45
+  match_thresh: 0.8            # max (1 - IoU), stage-1 association
+  second_match_thresh: 0.5     # max (1 - IoU), stage-2 low-score association
+  track_buffer: 30             # frames a lost track survives (scaled to source FPS)
+  min_hits: 3                  # frames before confirmation + public ID
+  class_aware: true            # never associate across categories
+  label_consensus: 0.6         # vote share required to commit to a label, else "unclassified"
+  vote_decay: 0.9
+
+face:
+  enabled: true
+  detector: insightface        # insightface (RetinaFace/SCRFD + ArcFace) | yunet | mediapipe
+  fallback_order: [insightface, yunet, mediapipe]
+  insightface_model: buffalo_l
+  det_size: 320
+  yunet_model: models/face_detection_yunet_2023mar.onnx
+  arcface_model: null          # optional ArcFace ONNX when detector != insightface
+  min_face_px: 28
+  min_det_score: 0.5
+  every_n_frames: 6            # per-track refresh cadence
+  max_faces_per_cycle: 8
+  emotion:
+    enabled: true
+    backend: hsemotion         # hsemotion | deepface | none
+    model: enet_b0_8_best_vgaf
+    smoothing: 0.6             # EMA weight of history
+  age:
+    enabled: true
+    groups:
+      - [0, 12, "child"]
+      - [13, 19, "teen"]
+      - [20, 35, "20-35"]
+      - [36, 55, "36-55"]
+      - [56, 120, "56+"]
+  recognition:
+    enabled: true              # identifies ONLY enrolled + consenting identities
+    threshold: 0.45            # cosine similarity (ArcFace buffalo_l)
+    gallery_db: data/faces.db
+
+zones:
+  file: zones.yaml
+  enter_frames: 3              # hysteresis: consecutive frames inside before ENTRY
+  exit_frames: 5               # consecutive frames outside before EXIT
+  anchor: bottom_center        # bottom_center (ground contact) | center
+
+alerts:
+  default_cooldown_s: 30
+  snapshot_on_alert: true
+  rules:
+    - {id: unknown_person_zone_a, type: unknown_person, zones: [zone_a], severity: warning, min_dwell_s: 2}
+    - {id: vehicle_in_walkway, type: category_in_zone, zones: [walkway], categories: [vehicle], severity: critical}
+    - {id: animal_entered_farm, type: category_in_zone, zones: [farm], categories: [animal], trigger: entry, severity: warning}
+    - {id: crowd_limit, type: crowd, zones: ["*"], category: human, threshold: 10, severity: warning}
+    - {id: angry_expression, type: expression, zones: ["*"], emotions: [angry], min_confidence: 0.6, min_duration_s: 1.5, severity: info}
+    - {id: loitering_zone_a, type: dwell, zones: [zone_a], categories: [human], max_dwell_s: 120, severity: warning}
+    - {id: unattended_object, type: unclassified_dwell, zones: ["*"], max_dwell_s: 60, severity: warning}
+    - {id: zone_policy, type: zone_violation, zones: ["*"], severity: warning, cooldown_s: 60}
+  channels:
+    overlay: {enabled: true, max_items: 50}
+    log_file: {enabled: true, path: data/logs/alerts.jsonl, min_severity: info}
+    telegram: {enabled: false, min_severity: warning, bot_token_env: TELEGRAM_BOT_TOKEN, chat_id_env: TELEGRAM_CHAT_ID, send_snapshot: true, max_per_minute: 20}
+    email: {enabled: false, min_severity: critical, smtp_host_env: SMTP_HOST, smtp_port: 587, username_env: SMTP_USER, password_env: SMTP_PASSWORD, sender: "zbmops@localhost", recipients: [], max_per_minute: 6}
+    webhook: {enabled: false, min_severity: info, url: "http://localhost:3000/api/events", heartbeat_url: "http://localhost:3000/api/heartbeat", token_env: INGEST_TOKEN, max_per_minute: 600}
+
+analytics:
+  db_path: data/events.db
+  snapshots_dir: data/snapshots
+  export_dir: data/exports
+  counts_interval_s: 5
+  heatmap: {enabled: true, cell_px: 8, decay: 0.997, alpha: 0.45}
+
+privacy:
+  blur_faces: false            # pixelate faces of everyone NOT enrolled (display + stream)
+  blur_enrolled: false
+  blur_snapshots: true         # alert snapshots: pixelate ALL faces
+  store_face_images: false     # hard-wired false: embeddings only, face crops never persisted
+  retention_days: 30           # events, alerts, snapshots, logs older than this are deleted
+  purge_interval_s: 3600
+  monitoring_indicator: true   # hard-wired true: the indicator cannot be disabled
+  indicator_text: "MONITORING ACTIVE"
+
+ui:
+  mode: window                 # window (OpenCV) | headless
+  window_name: "ZBMOPS // Mission Control"
+  show_heatmap: false
+  show_hud: true
+  stream_server: {enabled: true, host: 0.0.0.0, port: 8765, jpeg_quality: 80, max_fps: 25}
